@@ -38,3 +38,14 @@ def login(from_data: OAuth2PasswordRequestForm = Depends(), service: AuthService
             )
 def get_user(user: schemas.User = Depends(get_current_user)):
     return user
+
+
+@router.get(path='/refresh',
+            response_model=Token,
+            summary="обновление JWT токена",
+            tags=["auth"]
+            )
+def refresh_token(user: schemas.User = Depends(get_current_user),
+                  service: AuthService = Depends()
+                  ):
+    return service.create_token(user)
