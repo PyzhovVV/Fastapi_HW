@@ -3,8 +3,9 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.v1 import schemas
 from src.api.v1.schemas import PostCreate, PostListResponse, PostModel
-from src.services import PostService, get_post_service
+from src.services import PostService, get_post_service, get_current_user
 
 router = APIRouter()
 
@@ -49,6 +50,7 @@ def post_detail(
 )
 def post_create(
     post: PostCreate, post_service: PostService = Depends(get_post_service),
+    user: schemas.User = Depends(get_current_user)
 ) -> PostModel:
-    post: dict = post_service.create_post(post=post)
+    post: dict = post_service.create_post(post=post, user_uuid=user.uuid)
     return PostModel(**post)
