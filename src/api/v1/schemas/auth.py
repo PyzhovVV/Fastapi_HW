@@ -12,6 +12,11 @@ class UserCreate(BaseUser):
 
 class User(BaseUser):
     uuid: str
+    roles: str
+    created_at: str
+    is_superuser: bool
+    is_totp_enabled: bool
+    is_active: bool
 
     class Config:
         orm_mode = True
@@ -19,4 +24,4 @@ class User(BaseUser):
 
 class Token(BaseModel):
     access_token: str
-    token_type: str = 'bearer'
+    refresh_token: str

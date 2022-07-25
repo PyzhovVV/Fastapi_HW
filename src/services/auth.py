@@ -17,7 +17,7 @@ from src.db import get_session
 from src.models import User
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/signin')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/login')
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> schemas.User:
@@ -63,24 +63,37 @@ class AuthService:
     def create_token(cls, user: models.User) -> schemas.Token:
         user_data = models.User.from_orm(user)
         now = datetime.utcnow()
-        payload = {
+        payload_access_token = {
             'iat': now,
             'nbf': now,
             'exp': now + timedelta(seconds=CACHE_EXPIRE_IN_SECONDS),
-            'sub': str(user_data.uuid),
+            'type': 'access',
             'user': user_data.dict(),
         }
-        token = jwt.encode(
-            claims=payload,
+        access_token = jwt.encode(
+            claims=payload_access_token,
             key=JWT_SECRET_KEY,
             algorithm=JWT_ALGORITHM,
         )
-        return schemas.Token(access_token=token)
+        payload_refresh_token = {
+            'iat': now,
+            'nbf': now,
+            'exp': now + timedelta(seconds=CACHE_EXPIRE_IN_SECONDS),
+            'type': 'refresh',
+            'user_uuid': str(user_data.uuid)
+        }
+        refresh_token = jwt.encode(
+            claims=payload_refresh_token,
+            key=JWT_SECRET_KEY,
+            algorithm=JWT_ALGORITHM,
+        )
+        return schemas.Token(access_token=access_token, refresh_token=refresh_token)
 
     def __init__(self, session: Session = Depends(get_session)):
         self.session = session
 
-    def register_new_user(self, user_data: schemas.UserCreate) -> schemas.Token:
+    def register_new_user(self, user_data: schemas.UserCreate) -> dict:
+        "Регистрация пользователя"
         user = User(
             email=user_data.email,
             username=user_data.username,
@@ -88,9 +101,11 @@ class AuthService:
         )
         self.session.add(user)
         self.session.commit()
-        return self.create_token(user)
+        self.session.refresh(user)
+        return user.dict()
 
     def authenticate_user(self, username: str, password: str) -> schemas.Token:
+        "Авторизация пользователя"
         exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Incorrect username or password',

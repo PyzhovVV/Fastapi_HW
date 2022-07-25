@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from uuid import uuid4
+from uuid import uuid1
 
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import UniqueConstraint
@@ -15,7 +15,7 @@ class User(SQLModel, table=True):
         UniqueConstraint("email"),
         UniqueConstraint("password_hash")
     )
-    uuid: str = Field(default=str(uuid4()), primary_key=True)
+    uuid: str = Field(default=str(uuid1()), primary_key=True)
     username: str = Field()
     roles: str = Field(default='user has no roles')
     created_at: str = Field(default=jsonable_encoder(datetime.utcnow()), nullable=False)
